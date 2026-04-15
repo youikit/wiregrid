@@ -1,26 +1,244 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ─── Blue-White Theme ─── */
+  --wg-primary-50: #eff6ff;
+  --wg-primary-100: #dbeafe;
+  --wg-primary-200: #bfdbfe;
+  --wg-primary-300: #93c5fd;
+  --wg-primary-400: #60a5fa;
+  --wg-primary-500: #3b82f6;
+  --wg-primary-600: #2563eb;
+  --wg-primary-700: #1d4ed8;
+  --wg-primary-800: #1e40af;
+
+  --wg-bg: #f0f4f8;
+  --wg-surface: #ffffff;
+  --wg-border: #e2e8f0;
+  --wg-text: #1e293b;
+  --wg-text-muted: #64748b;
+  --wg-text-light: #94a3b8;
+
+  /* Dot grid settings */
+  --wg-dot-color: #bfcad8;
+  --wg-dot-size: 1.5px;
+  --wg-dot-gap: 24px;
+
+  --background: #f0f4f8;
+  --foreground: #1e293b;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--wg-bg);
+  color: var(--wg-text);
+  color-scheme: light;
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+
+
+/* ─── Dot-grid canvas (FigJam style) ─── */
+.canvas-dots {
+  background-image: radial-gradient(
+    circle,
+    var(--wg-dot-color) var(--wg-dot-size),
+    transparent var(--wg-dot-size)
+  );
+  background-size: var(--wg-dot-gap) var(--wg-dot-gap);
+  background-color: var(--wg-bg);
+}
+
+/* ─── 12-col grid overlay ─── */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.grid-overlay-col {
+  border-left: 1px dashed rgba(59, 130, 246, 0.12);
+  background: rgba(59, 130, 246, 0.025);
+}
+
+.grid-overlay-col:last-child {
+  border-right: 1px dashed rgba(59, 130, 246, 0.12);
+}
+
+/* ─── Column resize handle ─── */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 20;
+}
+
+.resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 28px;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.resize-handle:hover::after,
+.resize-handle.active::after {
+  background: var(--wg-primary-500);
+}
+
+/* ─── Section block ─── */
+.section-block {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.section-block:hover {
+  box-shadow: 0 2px 16px rgba(37, 99, 235, 0.08);
+}
+
+/* ─── Sidebar drag item ─── */
+.sidebar-drag-item {
+  cursor: grab;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.sidebar-drag-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.14);
+  border-color: var(--wg-primary-400);
+}
+
+.sidebar-drag-item:active {
+  cursor: grabbing;
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.18);
+}
+
+/* ─── Scrollbar ─── */
+.canvas-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.canvas-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.canvas-scroll::-webkit-scrollbar-thumb {
+  background: var(--wg-border);
+  border-radius: 4px;
+}
+
+.canvas-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--wg-text-light);
+}
+
+/* ─── Animations ─── */
+@keyframes pulse-border {
+  0%,
+  100% {
+    border-color: var(--wg-primary-200);
+  }
+  50% {
+    border-color: var(--wg-primary-400);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.pulse-border {
+  animation: pulse-border 2.5s ease-in-out infinite;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(59, 130, 246, 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* ─── Drop indicator ─── */
+@keyframes dropPulse {
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.drop-pulse {
+  animation: dropPulse 1.2s ease-in-out infinite;
+}
+
+/* ─── Glass effect for navbar ─── */
+.glass-nav {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ─── Column span indicator ─── */
+.col-span-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
 }
