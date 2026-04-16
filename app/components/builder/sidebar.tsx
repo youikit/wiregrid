@@ -323,6 +323,7 @@ export default function Sidebar() {
                   type: "REMOVE_COLUMN",
                   payload: {
                     sectionId: selectedSection.id,
+                    rowId: selectedRow!.id,
                     columnId: selectedColumn.id,
                   },
                 })
