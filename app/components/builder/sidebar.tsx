@@ -237,7 +237,6 @@ export default function Sidebar() {
                     if (selectedColumn && selectedRow && selectedSection && selectedColumn.span > 1) {
                       dispatch({
                         type: "RESIZE_COLUMN",
-                        // @ts-ignore
                         payload: {
                           sectionId: selectedSection.id,
                           rowId: selectedRow.id,
@@ -270,7 +269,6 @@ export default function Sidebar() {
                     if (selectedColumn.span < maxSpan) {
                       dispatch({
                         type: "RESIZE_COLUMN",
-                        // @ts-ignore
                         payload: {
                           sectionId: selectedSection.id,
                           rowId: selectedRow.id,

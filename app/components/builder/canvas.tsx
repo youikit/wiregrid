@@ -29,6 +29,7 @@ export default function Canvas() {
   /* ── resize ref (lives outside React re-renders) ── */
   const resizingRef = useRef<{
     sectionId: string;
+    rowId: string;
     columnId: string;
     startX: number;
     startSpan: number;
@@ -165,7 +166,6 @@ export default function Canvas() {
         );
         dispatch({
           type: "RESIZE_COLUMN",
-          // @ts-ignore
           payload: { sectionId: r.sectionId, rowId: r.rowId, columnId: r.columnId, span: newSpan },
         });
       };
