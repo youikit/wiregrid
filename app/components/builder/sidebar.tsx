@@ -4,7 +4,7 @@ import React, { type DragEvent } from "react";
 import { useBuilder } from "./builder-context";
 import { DRAG_MIME } from "./types";
 
-/* ─── Icon Components ─── */
+/* ─── Icon Component ─── */
 function SectionIcon() {
   return (
     <svg
@@ -24,38 +24,11 @@ function SectionIcon() {
         strokeWidth="1.5"
         strokeDasharray="4 2"
       />
-      <rect
-        x="5"
-        y="5"
-        width="30"
-        height="4"
-        rx="1.5"
-        fill="currentColor"
-        opacity="0.2"
-      />
-      <rect
-        x="5"
-        y="12"
-        width="30"
-        height="4"
-        rx="1.5"
-        fill="currentColor"
-        opacity="0.12"
-      />
-      <rect
-        x="5"
-        y="19"
-        width="18"
-        height="4"
-        rx="1.5"
-        fill="currentColor"
-        opacity="0.08"
-      />
     </svg>
   );
 }
 
-function ColumnIcon() {
+function ElementIcon() {
   return (
     <svg
       width="40"
@@ -65,37 +38,15 @@ function ColumnIcon() {
       className="text-blue-500"
     >
       <rect
-        x="2"
-        y="2"
-        width="10"
-        height="24"
-        rx="2.5"
+        x="6"
+        y="4"
+        width="28"
+        height="20"
+        rx="3"
         fill="currentColor"
-        opacity="0.2"
+        opacity="0.1"
         stroke="currentColor"
-        strokeWidth="1"
-      />
-      <rect
-        x="15"
-        y="2"
-        width="10"
-        height="24"
-        rx="2.5"
-        fill="currentColor"
-        opacity="0.14"
-        stroke="currentColor"
-        strokeWidth="1"
-      />
-      <rect
-        x="28"
-        y="2"
-        width="10"
-        height="24"
-        rx="2.5"
-        fill="currentColor"
-        opacity="0.08"
-        stroke="currentColor"
-        strokeWidth="1"
+        strokeWidth="1.5"
       />
     </svg>
   );
@@ -111,26 +62,18 @@ export default function Sidebar() {
     e.dataTransfer.effectAllowed = "copy";
   };
 
-  const onDragStartColumn = (e: DragEvent) => {
-    e.dataTransfer.setData(DRAG_MIME.column, "column");
+  const onDragStartElement = (e: DragEvent) => {
+    e.dataTransfer.setData(DRAG_MIME.element, "element");
     e.dataTransfer.effectAllowed = "copy";
   };
 
-  const selectedSection = state.sections.find(
-    (s) => s.id === state.selectedSectionId
-  );
-  let selectedColumn = null;
-  let selectedRow = null;
-  if (selectedSection && state.selectedColumnId) {
-    for (const row of selectedSection.rows) {
-      const col = row.columns.find((c) => c.id === state.selectedColumnId);
-      if (col) {
-        selectedColumn = col;
-        selectedRow = row;
-        break;
-      }
-    }
-  }
+  const selectedSection = state.selectedSectionId
+    ? state.sections.find((s) => s.id === state.selectedSectionId) ?? null
+    : null;
+
+  const selectedElement = selectedSection && state.selectedElementId
+    ? selectedSection.elements.find((el) => el.id === state.selectedElementId) ?? null
+    : null;
 
   return (
     <aside className="w-[260px] bg-white border-r border-slate-200/60 flex flex-col shrink-0 overflow-hidden">
@@ -156,26 +99,26 @@ export default function Sidebar() {
             <div>
               <p className="text-sm font-semibold text-slate-700">Section</p>
               <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                Horizontal container for columns
+                Vertical block container
               </p>
             </div>
           </div>
         </div>
 
-        {/* Column */}
+        {/* Element */}
         <div
           draggable
-          onDragStart={onDragStartColumn}
+          onDragStart={onDragStartElement}
           className="sidebar-drag-item p-4 rounded-xl border-2 border-slate-200/80 bg-gradient-to-br from-blue-50/50 to-white hover:from-blue-50"
         >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-              <ColumnIcon />
+              <ElementIcon />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-700">Column</p>
+              <p className="text-sm font-semibold text-slate-700">Block</p>
               <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
-                Adjustable 1–12 grid span
+                Drag into a section
               </p>
             </div>
           </div>
@@ -191,23 +134,50 @@ export default function Sidebar() {
           Properties
         </h2>
 
-        {!selectedSection && !selectedColumn && (
+        {!selectedSection && !selectedElement && (
           <p className="text-xs text-slate-300 italic">
             Select an element on the canvas
           </p>
         )}
 
-        {/* Section properties */}
-        {selectedSection && !selectedColumn && (
+        {/* Section properteis */}
+        {selectedSection && !selectedElement && (
           <div className="space-y-3 fade-in">
-            <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
-                Section
-              </p>
-              <p className="text-xs font-medium text-slate-600">
-                {selectedSection.rows.length} row{selectedSection.rows.length !== 1 ? "s" : ""} •{" "}
-                {selectedSection.rows.reduce((acc, row) => acc + row.columns.length, 0)} col{selectedSection.rows.reduce((acc, row) => acc + row.columns.length, 0) !== 1 ? "s" : ""}
-              </p>
+            <div className="space-y-3">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                  Section Name
+                </p>
+                <input
+                  type="text"
+                  value={selectedSection.name || ""}
+                  placeholder="e.g. Hero Section"
+                  onChange={(e) =>
+                    dispatch({
+                      type: "RENAME_SECTION",
+                      payload: { sectionId: selectedSection.id, name: e.target.value },
+                    })
+                  }
+                  className="w-full bg-white border border-slate-200 rounded-md px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:font-normal placeholder:text-slate-400"
+                />
+              </div>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                  Statistics
+                </p>
+                <p className="text-xs font-medium text-slate-600 mb-2">
+                  {selectedSection.elements.length} element{selectedSection.elements.length !== 1 ? "s" : ""}
+                </p>
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                  Height
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-semibold text-slate-600">
+                    {selectedSection.h}
+                  </span>
+                  <span className="text-[10px] text-slate-400">px</span>
+                </div>
+              </div>
             </div>
             <button
               onClick={() =>
@@ -223,114 +193,74 @@ export default function Sidebar() {
           </div>
         )}
 
-        {/* Column properties */}
-        {selectedSection && selectedColumn && (
+        {/* Element Properties */}
+        {selectedSection && selectedElement && (
           <div className="space-y-3 fade-in">
-            <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5">
-                Column Span
-              </p>
-              {/* Span controls */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    if (selectedColumn && selectedRow && selectedSection && selectedColumn.span > 1) {
-                      dispatch({
-                        type: "RESIZE_COLUMN",
-                        payload: {
-                          sectionId: selectedSection.id,
-                          rowId: selectedRow.id,
-                          columnId: selectedColumn.id,
-                          span: selectedColumn.span - 1,
-                        },
-                      });
-                    }
-                  }}
-                  disabled={selectedColumn!.span <= 1}
-                  className="w-7 h-7 rounded-md border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-all"
-                >
-                  −
-                </button>
-                <div className="flex-1 text-center">
-                  <span className="text-lg font-bold text-blue-600">
-                    {selectedColumn!.span}
+            {/* Position */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                  X Position
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-semibold text-slate-600">
+                    {selectedElement.x}
                   </span>
-                  <span className="text-xs text-slate-400 ml-1">/ 12</span>
+                  <span className="text-[10px] text-slate-400">px</span>
                 </div>
-                <button
-                  onClick={() => {
-                    if (!selectedRow || !selectedSection || !selectedColumn) return;
-                    const used = selectedRow.columns.reduce(
-                      (s, c) => s + c.span,
-                      0
-                    );
-                    const maxSpan =
-                      12 - used + selectedColumn.span;
-                    if (selectedColumn.span < maxSpan) {
-                      dispatch({
-                        type: "RESIZE_COLUMN",
-                        payload: {
-                          sectionId: selectedSection.id,
-                          rowId: selectedRow.id,
-                          columnId: selectedColumn.id,
-                          span: selectedColumn.span + 1,
-                        },
-                      });
-                    }
-                  }}
-                  disabled={(() => {
-                    if (!selectedRow || !selectedColumn) return true;
-                    const used = selectedRow.columns.reduce(
-                      (s, c) => s + c.span,
-                      0
-                    );
-                    return selectedColumn.span >= 12 - used + selectedColumn.span;
-                  })()}
-                  className="w-7 h-7 rounded-md border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-all"
-                >
-                  +
-                </button>
               </div>
-
-              {/* Visual span bar */}
-              <div className="mt-3 grid grid-cols-12 gap-0.5">
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-2 rounded-sm transition-colors ${
-                      i < selectedColumn.span
-                        ? "bg-blue-500"
-                        : "bg-slate-200"
-                    }`}
-                  />
-                ))}
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                  Y Position
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-semibold text-slate-600">
+                    {selectedElement.y}
+                  </span>
+                  <span className="text-[10px] text-slate-400">px</span>
+                </div>
               </div>
             </div>
 
-            {/* Width percentage */}
-            <div className="p-3 rounded-lg bg-blue-50/60 border border-blue-100">
-              <p className="text-[10px] uppercase tracking-wider text-blue-400 mb-1">
-                Width
-              </p>
-              <p className="text-sm font-semibold text-blue-600">
-                {((selectedColumn.span / 12) * 100).toFixed(1)}%
-              </p>
+            {/* Dimensions */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                  Width
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-semibold text-slate-600">
+                    {selectedElement.w}
+                  </span>
+                  <span className="text-[10px] text-slate-400">px</span>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-100">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400 mb-1">
+                  Height
+                </p>
+                <div className="flex items-center gap-1">
+                  <span className="text-sm font-semibold text-slate-600">
+                    {selectedElement.h}
+                  </span>
+                  <span className="text-[10px] text-slate-400">px</span>
+                </div>
+              </div>
             </div>
 
             <button
               onClick={() =>
                 dispatch({
-                  type: "REMOVE_COLUMN",
+                  type: "REMOVE_ELEMENT",
                   payload: {
                     sectionId: selectedSection.id,
-                    rowId: selectedRow!.id,
-                    columnId: selectedColumn.id,
+                    elementId: selectedElement.id,
                   },
                 })
               }
-              className="w-full py-2 px-3 rounded-lg bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors"
+              className="w-full py-2 px-3 rounded-lg bg-red-50 text-red-500 text-xs font-medium hover:bg-red-100 transition-colors mt-2"
             >
-              Remove Column
+              Remove Block
             </button>
           </div>
         )}
@@ -339,7 +269,7 @@ export default function Sidebar() {
       {/* ── Footer ── */}
       <div className="px-5 py-4 border-t border-slate-100 text-center">
         <p className="text-[10px] text-slate-300">
-          WireGrid v1.0 — 12-col layout builder
+          WireGrid v2.5 — Sectioned Canvas
         </p>
       </div>
     </aside>

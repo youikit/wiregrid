@@ -7,7 +7,7 @@ import React, {
   type ReactNode,
   type Dispatch,
 } from "react";
-import type { WireSection, WireColumn } from "./types";
+import type { WireElement, WireSection } from "./types";
 
 /* ─── State shape ─── */
 export interface BuilderState {
@@ -15,26 +15,22 @@ export interface BuilderState {
   showGrid: boolean;
   zoom: number;
   selectedSectionId: string | null;
-  selectedColumnId: string | null;
+  selectedElementId: string | null;
 }
 
 /* ─── Actions ─── */
 export type BuilderAction =
   | { type: "ADD_SECTION"; payload?: { insertIndex?: number } }
   | { type: "REMOVE_SECTION"; payload: { sectionId: string } }
-  | { type: "ADD_COLUMN"; payload: { sectionId: string; span?: number; targetRowId?: string } }
-  | {
-      type: "REMOVE_COLUMN";
-      payload: { sectionId: string; rowId: string; columnId: string };
-    }
-  | {
-      type: "RESIZE_COLUMN";
-      payload: { sectionId: string; rowId: string; columnId: string; span: number };
-    }
+  | { type: "RENAME_SECTION"; payload: { sectionId: string; name: string } }
+  | { type: "RESIZE_SECTION"; payload: { sectionId: string; height: number } }
+  | { type: "ADD_ELEMENT"; payload: { sectionId: string; x: number; y: number; w?: number; h?: number } }
+  | { type: "REMOVE_ELEMENT"; payload: { sectionId: string; elementId: string } }
+  | { type: "UPDATE_BOUNDS"; payload: { sectionId: string; elementId: string; x: number; y: number; w: number; h: number } }
   | { type: "TOGGLE_GRID" }
   | { type: "SET_ZOOM"; payload: number }
   | { type: "SELECT_SECTION"; payload: string | null }
-  | { type: "SELECT_COLUMN"; payload: string | null };
+  | { type: "SELECT_ELEMENT"; payload: string | null };
 
 /* ─── Helpers ─── */
 let counter = 0;
@@ -51,7 +47,7 @@ function builderReducer(
 ): BuilderState {
   switch (action.type) {
     case "ADD_SECTION": {
-      const newSection: WireSection = { id: uid(), rows: [] };
+      const newSection: WireSection = { id: uid(), h: 400, elements: [] };
       const sections = [...state.sections];
       const idx = action.payload?.insertIndex;
       if (idx !== undefined) {
@@ -59,88 +55,74 @@ function builderReducer(
       } else {
         sections.push(newSection);
       }
-      return { ...state, sections, selectedSectionId: newSection.id };
+      return { ...state, sections, selectedSectionId: newSection.id, selectedElementId: null };
     }
 
     case "REMOVE_SECTION":
       return {
         ...state,
-        sections: state.sections.filter(
-          (s) => s.id !== action.payload.sectionId
-        ),
-        selectedSectionId:
-          state.selectedSectionId === action.payload.sectionId
-            ? null
-            : state.selectedSectionId,
+        sections: state.sections.filter((s) => s.id !== action.payload.sectionId),
+        selectedSectionId: state.selectedSectionId === action.payload.sectionId ? null : state.selectedSectionId,
       };
 
-    case "ADD_COLUMN":
+    case "RENAME_SECTION":
       return {
         ...state,
-        sections: state.sections.map((section) => {
-          if (section.id !== action.payload.sectionId) return section;
+        sections: state.sections.map((sec) =>
+          sec.id === action.payload.sectionId ? { ...sec, name: action.payload.name } : sec
+        )
+      };
 
-          const spanToAdd = action.payload.span ?? 3;
-          let newRows = [...section.rows];
-          
-          let targetRow = action.payload.targetRowId ? newRows.find(r => r.id === action.payload.targetRowId) : newRows[newRows.length - 1];
+    case "RESIZE_SECTION":
+      return {
+        ...state,
+        sections: state.sections.map((sec) => 
+          sec.id === action.payload.sectionId ? { ...sec, h: Math.max(100, action.payload.height) } : sec
+        )
+      };
 
-          const used = targetRow ? targetRow.columns.reduce((s, c) => s + c.span, 0) : 12;
-          const remaining = 12 - used;
-
-          if (!targetRow || remaining <= 0) {
-            // Must create a new row
-            const newRow = { id: uid(), columns: [{ id: uid(), span: spanToAdd }] };
-            newRows.push(newRow);
-          } else {
-            // Append to target row
-            const actualSpan = Math.min(spanToAdd, remaining);
-            const col = { id: uid(), span: actualSpan };
-            const rowIndex = newRows.findIndex(r => r.id === targetRow.id);
-            newRows[rowIndex] = { ...targetRow, columns: [...targetRow.columns, col] };
-          }
-          return { ...section, rows: newRows };
+    case "ADD_ELEMENT": {
+      return {
+        ...state,
+        sections: state.sections.map((sec) => {
+          if (sec.id !== action.payload.sectionId) return sec;
+          const newElement: WireElement = {
+            id: uid(),
+            x: action.payload.x,
+            y: action.payload.y,
+            w: action.payload.w || 352,
+            h: action.payload.h || 120,
+          };
+          return { ...sec, elements: [...sec.elements, newElement] };
         }),
       };
+    }
 
-    case "REMOVE_COLUMN":
+    case "REMOVE_ELEMENT":
       return {
         ...state,
-        sections: state.sections.map((section) => {
-          if (section.id !== action.payload.sectionId) return section;
-          const newRows = section.rows.map(row => {
-            if (row.id !== action.payload.rowId) return row;
-            return {
-              ...row,
-              columns: row.columns.filter(c => c.id !== action.payload.columnId)
-            };
-          }).filter(row => row.columns.length > 0);
-          return { ...section, rows: newRows };
+        sections: state.sections.map((sec) => {
+          if (sec.id !== action.payload.sectionId) return sec;
+          return { ...sec, elements: sec.elements.filter((e) => e.id !== action.payload.elementId) };
         }),
-        selectedColumnId:
-          state.selectedColumnId === action.payload.columnId
-            ? null
-            : state.selectedColumnId,
+        selectedElementId: state.selectedElementId === action.payload.elementId ? null : state.selectedElementId,
       };
 
-    case "RESIZE_COLUMN":
+    case "UPDATE_BOUNDS":
       return {
         ...state,
-        sections: state.sections.map((section) => {
-          if (section.id !== action.payload.sectionId) return section;
+        sections: state.sections.map((sec) => {
+          if (sec.id !== action.payload.sectionId) return sec;
           return {
-            ...section,
-            rows: section.rows.map((row) => {
-              if (row.id !== action.payload.rowId) return row;
+            ...sec,
+            elements: sec.elements.map((el) => {
+              if (el.id !== action.payload.elementId) return el;
               return {
-                ...row,
-                columns: row.columns.map((col) => {
-                  if (col.id !== action.payload.columnId) return col;
-                  return {
-                    ...col,
-                    span: Math.max(1, Math.min(12, action.payload.span)),
-                  };
-                }),
+                ...el,
+                x: action.payload.x,
+                y: action.payload.y,
+                w: Math.max(24, action.payload.w),
+                h: Math.max(24, action.payload.h),
               };
             }),
           };
@@ -160,11 +142,14 @@ function builderReducer(
       return {
         ...state,
         selectedSectionId: action.payload,
-        selectedColumnId: null,
+        selectedElementId: null,
       };
 
-    case "SELECT_COLUMN":
-      return { ...state, selectedColumnId: action.payload };
+    case "SELECT_ELEMENT":
+      return {
+        ...state,
+        selectedElementId: action.payload,
+      };
 
     default:
       return state;
@@ -177,7 +162,7 @@ const initialState: BuilderState = {
   showGrid: true,
   zoom: 1,
   selectedSectionId: null,
-  selectedColumnId: null,
+  selectedElementId: null,
 };
 
 /* ─── Context ─── */
